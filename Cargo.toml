@@ -1,0 +1,13 @@
+[package]
+name = "quorumdb"
+version = "0.1.0"
+edition = "2021"
+description = "Embeddable replicated key-value store with Raft consensus and a crash-safe WAL"
+license = "MIT"
+
+[dependencies]
+# zero external deps on purpose — everything below is implemented from scratch
+
+[[bin]]
+name = "quorumdb"
+path = "src/main.rs"
