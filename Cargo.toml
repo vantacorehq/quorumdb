@@ -2,7 +2,7 @@
 name = "quorumdb"
 version = "0.1.0"
 edition = "2021"
-description = "Embeddable replicated key-value store with Raft consensus and a crash-safe WAL"
+description = "In-process 3-node Raft key-value store. TCP transport is not implemented."
 license = "MIT"
 
 [dependencies]

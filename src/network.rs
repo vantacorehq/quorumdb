@@ -1,7 +1,9 @@
 //! Transport between Raft nodes. Swappable: start with plain TCP + a tiny
 //! framed protocol, replace with anything else later without touching raft.rs.
 
-use crate::raft::{AppendEntriesArgs, AppendEntriesReply, NodeId, RequestVoteArgs, RequestVoteReply};
+use crate::raft::{
+    AppendEntriesArgs, AppendEntriesReply, NodeId, RequestVoteArgs, RequestVoteReply,
+};
 
 #[derive(Debug, Clone)]
 pub enum RpcRequest {
@@ -16,9 +18,8 @@ pub enum RpcReply {
 }
 
 /// Abstraction over "send this RPC to that node and get a reply back".
-/// Real implementation: TCP socket + bincode-ish framing.
-/// Test implementation: in-memory channel with injectable latency/drops
-/// (used by tests/chaos.rs to simulate partitions).
+/// The in-process cluster does not use this trait; it calls Raft handlers
+/// directly. [`TcpTransport::send`] is not implemented.
 pub trait Transport {
     fn send(&self, to: NodeId, req: RpcRequest) -> Result<RpcReply, TransportError>;
 }
@@ -35,9 +36,7 @@ pub struct TcpTransport {
 
 impl Transport for TcpTransport {
     fn send(&self, _to: NodeId, _req: RpcRequest) -> Result<RpcReply, TransportError> {
-        // TODO: open connection (or reuse pooled one), write framed request,
-        // read framed reply, deserialize. Return TransportError::Timeout on
-        // deadline exceeded.
+        // Not implemented. The in-process cluster calls Raft handlers directly.
         Err(TransportError::Unreachable)
     }
 }

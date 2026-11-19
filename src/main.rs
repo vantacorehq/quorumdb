@@ -1,26 +1,19 @@
-mod network;
-mod raft;
-mod storage;
-
-use std::time::Duration;
-
-use raft::RaftNode;
-use storage::{StateMachine, Wal};
+use quorumdb::cluster::Cluster;
 
 fn main() {
-    let node_id: u64 = std::env::args()
-        .nth(1)
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(1);
-    let peers: Vec<u64> = vec![1, 2, 3].into_iter().filter(|&id| id != node_id).collect();
-
-    let mut _node = RaftNode::new(node_id, peers, Duration::from_millis(150));
-    let _wal = Wal::open(format!("quorumdb-node-{node_id}.wal")).expect("open wal");
-    let _state = StateMachine::default();
-
-    println!("quorumdb node {node_id} starting (skeleton — no event loop wired yet)");
-
-    // TODO: event loop — select! between election timer, heartbeat timer,
-    // incoming RPCs, and client requests. This is where raft.rs, storage.rs
-    // and network.rs actually get connected.
+    let mut cluster = Cluster::new();
+    let elected = cluster.elect(1);
+    println!("quorumdb in-process cluster: node 1 elected leader: {elected}");
+    if !elected {
+        eprintln!("election failed");
+        std::process::exit(1);
+    }
+    cluster.put(1, "alpha", b"one").expect("committed put");
+    let from_follower = cluster
+        .get(2, "alpha")
+        .expect("follower should observe the committed put");
+    println!(
+        "follower 2 read alpha={}",
+        String::from_utf8_lossy(&from_follower)
+    );
 }
