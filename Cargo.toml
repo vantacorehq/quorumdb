@@ -1,9 +1,13 @@
 [package]
 name = "quorumdb"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-description = "In-process 3-node Raft key-value store. TCP transport is not implemented."
+description = "In-process 3-node Raft key-value store. Leader election, log replication, durable WAL with replay. Zero external dependencies."
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/vantacorehq/quorumdb"
+keywords = ["raft", "consensus", "database", "kv", "distributed"]
+categories = ["database-implementations", "concurrency"]
 
 [dependencies]
 # zero external deps on purpose — everything below is implemented from scratch

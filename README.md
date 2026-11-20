@@ -2,36 +2,49 @@
 
 # quorumdb
 
-In-process replicated key-value store. Three Raft nodes in one process elect a
-leader, replicate a log, and apply a committed put to each node's memory.
-Zero external dependencies.
+In-process **3-node Raft** key-value store. Pure Rust. Zero external dependencies.
 
-## Status
+Leader election, log replication, majority commit, and an optional durable WAL with full replay.
 
-Not production-ready. The working path is the in-process cluster in
-`src/cluster.rs`: leader election, log replication, and a committed put that
-is readable from a follower after commit.
+## What it is
 
-`TcpTransport::send` is not implemented; it returns `Unreachable`. There is no
-network event loop. `Wal::append` can write one entry and `sync_all`, but the
-cluster does not open that file and does not replay it. State lives in memory
-for the process lifetime.
+- Fixed 3-node cluster running inside one process
+- Raft: RequestVote + AppendEntries, term safety, log matching
+- In-memory state machine (`Put` / `Delete`)
+- Optional on-disk WAL: append + `read_all` + `truncate_from`
+- No TCP — the network is replaced by direct method calls
 
-## Layout
+## Quick start
 
-- `src/raft.rs` — Raft node: votes, append-entries, commit rule
-- `src/cluster.rs` — 3-node in-process driver
-- `src/storage.rs` — in-memory state machine and an unused single-entry WAL helper
-- `src/network.rs` — transport trait; TCP send is a stub
-- `src/main.rs` — runs one in-process election and put
+```rust
+use quorumdb::cluster::Cluster;
 
-## Building
-
+let mut cluster = Cluster::new();
+assert!(cluster.elect(1));
+cluster.put(1, "alpha", b"one").unwrap();
+assert_eq!(cluster.get(2, "alpha").unwrap(), b"one");
+assert_eq!(cluster.leader_id(), Some(1));
 ```
+
+## WAL
+
+```rust
+use quorumdb::storage::Wal;
+use quorumdb::raft::LogEntry;
+
+let mut wal = Wal::open("log.dat")?;
+wal.append(&LogEntry { term: 1, index: 1, command: b"cmd".to_vec() })?;
+let entries = Wal::read_all("log.dat")?;
+Wal::truncate_from("log.dat", 1)?;
+```
+
+## Build
+
+```sh
 cargo test
-cargo run --release
+cargo run
 ```
 
 ## License
 
-MIT — see LICENSE.
+MIT
