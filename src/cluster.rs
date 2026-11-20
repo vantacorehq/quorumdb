@@ -117,6 +117,31 @@ impl Cluster {
         self.nodes.get(&id)?.sm.get(key).cloned()
     }
 
+    /// Return the id of the current unique leader, if any.
+    pub fn leader_id(&self) -> Option<NodeId> {
+        let leaders: Vec<_> = self
+            .nodes
+            .iter()
+            .filter(|(_, n)| n.raft.role == Role::Leader)
+            .map(|(id, _)| *id)
+            .collect();
+        if leaders.len() == 1 {
+            Some(leaders[0])
+        } else {
+            None
+        }
+    }
+
+    /// Current commit index of the given node.
+    pub fn commit_index(&self, id: NodeId) -> Option<u64> {
+        self.nodes.get(&id).map(|n| n.raft.commit_index)
+    }
+
+    /// Number of nodes in the in-process cluster (always 3 for now).
+    pub fn size(&self) -> usize {
+        self.nodes.len()
+    }
+
     fn replicate(&mut self, leader: NodeId) {
         for _ in 0..16 {
             if self.nodes.get(&leader).map(|n| n.raft.role) != Some(Role::Leader) {
